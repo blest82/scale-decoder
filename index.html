@@ -1,0 +1,942 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Scale Decoder</title>
+  <style>
+    :root {
+      --bg: #f7f5f0;
+      --card: #ffffff;
+      --ink: #222222;
+      --muted: #77736b;
+      --line: #ded8cc;
+      --soft: #eee9df;
+      --accent: #2f2a24;
+      --good: #1f7a4d;
+      --warn: #a66a00;
+      --bad: #9b2c2c;
+      --shadow: 0 12px 30px rgba(40, 34, 26, 0.08);
+      --radius: 22px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    .app {
+      width: min(480px, 100%);
+      margin: 0 auto;
+      padding: 18px 16px 90px;
+    }
+    header {
+      padding: 12px 2px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: -0.04em;
+    }
+    .subtitle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      background: rgba(255,255,255,0.55);
+      white-space: nowrap;
+    }
+    .tabs {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(247,245,240,0.92);
+      backdrop-filter: blur(10px);
+      padding: 8px 0 10px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+    }
+    .tab {
+      border: 1px solid var(--line);
+      background: #fffaf0;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 10px 8px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .tab.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    .view { display: none; }
+    .view.active { display: block; }
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(222,216,204,0.8);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin: 12px 0;
+      box-shadow: var(--shadow);
+    }
+    .label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+    .weight-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .weight {
+      font-size: 54px;
+      font-weight: 750;
+      letter-spacing: -0.06em;
+      line-height: 1;
+    }
+    .kg {
+      font-size: 18px;
+      color: var(--muted);
+      margin-left: 4px;
+      letter-spacing: 0;
+    }
+    .status {
+      text-align: right;
+      min-width: 86px;
+    }
+    .status .big {
+      font-weight: 700;
+      font-size: 18px;
+    }
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 9px;
+      margin-top: 16px;
+    }
+    .mini {
+      background: var(--soft);
+      border-radius: 17px;
+      padding: 12px 8px;
+      text-align: center;
+      min-height: 70px;
+    }
+    .mini b {
+      display: block;
+      margin-top: 4px;
+      font-size: 17px;
+      letter-spacing: -0.02em;
+    }
+    .section-title {
+      font-weight: 740;
+      font-size: 17px;
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+    .bar {
+      height: 12px;
+      border-radius: 999px;
+      background: var(--soft);
+      overflow: hidden;
+      margin: 12px 0 7px;
+    }
+    .bar > div {
+      height: 100%;
+      width: 0;
+      border-radius: 999px;
+      background: var(--accent);
+      transition: width 0.25s ease;
+    }
+    .muted { color: var(--muted); }
+    .interpretation {
+      font-size: 15px;
+      color: #3b352e;
+    }
+    .hint {
+      background: #fff7df;
+      border: 1px solid #ead69a;
+      border-radius: 18px;
+      padding: 13px;
+      font-size: 14px;
+      color: #5e4510;
+      margin-top: 10px;
+    }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 13px 12px;
+      font-size: 16px;
+      background: white;
+      color: var(--ink);
+      outline: none;
+      margin: 6px 0 10px;
+    }
+    textarea { min-height: 74px; resize: vertical; }
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    button.primary, button.secondary, .file-btn {
+      width: 100%;
+      border: none;
+      border-radius: 18px;
+      padding: 14px 16px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    button.primary, .file-btn {
+      background: var(--accent);
+      color: white;
+    }
+    button.secondary {
+      background: var(--soft);
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .record {
+      border-bottom: 1px solid var(--line);
+      padding: 14px 0;
+    }
+    .record:last-child { border-bottom: none; }
+    .record-date { font-weight: 700; }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .chip {
+      background: var(--soft);
+      color: var(--muted);
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+    }
+    canvas {
+      width: 100%;
+      height: 260px;
+      background: linear-gradient(180deg, #ffffff, #fbfaf7);
+      border-radius: 18px;
+      border: 1px solid var(--line);
+    }
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .danger {
+      color: var(--bad);
+    }
+    .good {
+      color: var(--good);
+    }
+    .warn {
+      color: var(--warn);
+    }
+    #csvFile {
+      display: none;
+    }
+    .footer-note {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 10px 2px;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>Scale Decoder</h1>
+        <div class="subtitle">체중 숫자를 오해하지 않기 위한 개인용 앱</div>
+      </div>
+      <div class="pill">Private MVP</div>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-view="today">오늘</button>
+      <button class="tab" data-view="input">입력</button>
+      <button class="tab" data-view="trend">추세</button>
+      <button class="tab" data-view="data">기록</button>
+    </nav>
+
+    <section id="today" class="view active">
+      <div class="card">
+        <div class="weight-row">
+          <div>
+            <div class="label">Latest Morning Weight</div>
+            <div><span id="latestWeight" class="weight">-</span><span class="kg">kg</span></div>
+          </div>
+          <div class="status">
+            <div class="label">상태</div>
+            <div id="statusText" class="big">-</div>
+          </div>
+        </div>
+
+        <div class="grid3">
+          <div class="mini">
+            <span class="label">7일 평균</span>
+            <b id="avg7">-</b>
+          </div>
+          <div class="mini">
+            <span class="label">7일 변화</span>
+            <b id="change7">-</b>
+          </div>
+          <div class="mini">
+            <span class="label">목표까지</span>
+            <b id="toTarget">-</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Noise Score</div>
+        <div class="bar"><div id="noiseBar"></div></div>
+        <div class="row small">
+          <span>Low</span>
+          <span id="noiseScore">- / 100</span>
+          <span>High</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">오늘의 해석</div>
+        <div id="interpretation" class="interpretation">기록을 입력하면 해석이 표시됩니다.</div>
+        <div class="hint">
+          판단 기준은 하루 체중이 아니라 <b>7일 평균</b>입니다. 특히 생리, 대변 없음, 외식·염분·탄수 후에는 숫자를 지방 증가로 바로 해석하지 않습니다.
+        </div>
+      </div>
+    </section>
+
+    <section id="input" class="view">
+      <div class="card">
+        <div class="section-title">오늘 기록</div>
+        <label class="label">날짜</label>
+        <input id="date" type="date" />
+
+        <div class="two">
+          <div>
+            <label class="label">아침 체중</label>
+            <input id="morning" type="number" step="0.01" inputmode="decimal" placeholder="49.85" />
+          </div>
+          <div>
+            <label class="label">저녁 체중</label>
+            <input id="evening" type="number" step="0.01" inputmode="decimal" placeholder="50.30" />
+          </div>
+        </div>
+
+        <label class="label">대변</label>
+        <select id="bowel">
+          <option value="yes">있음</option>
+          <option value="no">없음</option>
+          <option value="small">조금</option>
+          <option value="unknown">모름</option>
+        </select>
+
+        <label class="label">생리/호르몬 상태</label>
+        <select id="period">
+          <option value="none">해당 없음</option>
+          <option value="pms">생리 전/PMS</option>
+          <option value="day1">생리 1일차</option>
+          <option value="day2">생리 2일차</option>
+          <option value="late">생리 후반</option>
+          <option value="ovulation">배란기 추정</option>
+        </select>
+
+        <label class="label">식사 패턴</label>
+        <select id="eating">
+          <option value="normal">보통</option>
+          <option value="home">집밥/클린식</option>
+          <option value="outside">외식</option>
+          <option value="salty">염분 많음</option>
+          <option value="carb">탄수 많음</option>
+          <option value="low">적게 먹음</option>
+        </select>
+
+        <div class="two">
+          <div>
+            <label class="label">칼로리</label>
+            <input id="calories" type="number" step="1" inputmode="numeric" placeholder="1200" />
+          </div>
+          <div>
+            <label class="label">걸음수</label>
+            <input id="steps" type="number" step="1" inputmode="numeric" placeholder="8000" />
+          </div>
+        </div>
+
+        <label class="label">컨디션</label>
+        <select id="condition">
+          <option value="normal">보통</option>
+          <option value="bloating">붓기</option>
+          <option value="headache">두통</option>
+          <option value="tired">피곤</option>
+          <option value="hungry">식욕 강함</option>
+          <option value="stable">안정적</option>
+        </select>
+
+        <label class="label">메모</label>
+        <textarea id="note" placeholder="예: 저녁 체중이 튐, 외식, 속 더부룩함"></textarea>
+
+        <button class="primary" id="saveBtn">저장</button>
+      </div>
+    </section>
+
+    <section id="trend" class="view">
+      <div class="card">
+        <div class="section-title">체중 추세</div>
+        <canvas id="chart" width="420" height="260"></canvas>
+        <div class="small" style="margin-top:8px;">검은 선: 아침 체중 / 두꺼운 선: 7일 평균 / 점선: 목표 47.8kg</div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">전략 판단</div>
+        <div id="strategyText" class="interpretation">데이터가 쌓이면 전략 판단이 표시됩니다.</div>
+      </div>
+    </section>
+
+    <section id="data" class="view">
+      <div class="card">
+        <div class="section-title">CSV Import / Export</div>
+        <p class="muted" style="margin-top:0;">구글시트에서 CSV로 다운로드한 뒤 가져오면 기존 데이터를 손으로 다시 입력하지 않아도 됩니다.</p>
+        <label for="csvFile" class="file-btn" style="display:block; text-align:center;">CSV 가져오기</label>
+        <input id="csvFile" type="file" accept=".csv,text/csv" />
+        <button class="secondary" id="exportBtn">CSV로 백업하기</button>
+        <button class="secondary" id="resetBtn">데모 데이터로 리셋</button>
+      </div>
+
+      <div class="card">
+        <div class="section-title">최근 기록</div>
+        <div id="recordsList"></div>
+      </div>
+    </section>
+
+    <div class="footer-note">
+      이 앱은 의료 진단 도구가 아니라 개인 체중 패턴을 해석하기 위한 MVP입니다. 급격한 체중 변화, 부종, 심한 피로, 생리 이상이 지속되면 의료 전문가와 상담하세요.
+    </div>
+  </main>
+
+  <script>
+    const TARGET = 47.8;
+    const STORAGE_KEY = "scale-decoder-records-v1";
+
+    const demoRecords = [
+      { date: "2026-05-07", morning: 49.9, evening: 50.35, bowel: "yes", period: "none", eating: "normal", calories: 1250, steps: 8500, condition: "normal", note: "" },
+      { date: "2026-05-08", morning: 50.05, evening: 50.4, bowel: "no", period: "late", eating: "normal", calories: 1200, steps: 6000, condition: "bloating", note: "" },
+      { date: "2026-05-09", morning: 49.95, evening: 50.25, bowel: "yes", period: "late", eating: "home", calories: 1180, steps: 9000, condition: "normal", note: "" },
+      { date: "2026-05-10", morning: 49.85, evening: 50.1, bowel: "yes", period: "late", eating: "home", calories: 1150, steps: 7800, condition: "normal", note: "" },
+      { date: "2026-05-11", morning: 49.55, evening: 50.05, bowel: "yes", period: "none", eating: "home", calories: 1200, steps: 10000, condition: "stable", note: "" },
+      { date: "2026-05-12", morning: 49.65, evening: 50.2, bowel: "no", period: "none", eating: "home", calories: 1300, steps: 7000, condition: "normal", note: "" },
+      { date: "2026-05-13", morning: 49.85, evening: 50.65, bowel: "no", period: "none", eating: "normal", calories: 1280, steps: 8000, condition: "bloating", note: "Dinner weight jump" }
+    ];
+
+    const $ = id => document.getElementById(id);
+
+    function todayISO() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function loadRecords() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return demoRecords;
+        const data = JSON.parse(raw);
+        return Array.isArray(data) ? data : demoRecords;
+      } catch {
+        return demoRecords;
+      }
+    }
+
+    function saveRecords(records) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    }
+
+    let records = sortRecords(loadRecords());
+
+    function sortRecords(list) {
+      return [...list].filter(r => r && r.date).sort((a,b) => String(a.date).localeCompare(String(b.date)));
+    }
+
+    function num(v) {
+      if (v === "" || v === null || v === undefined) return null;
+      const n = Number(String(v).replace(/[^\d.-]/g, ""));
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function fmt(v, digits = 2) {
+      if (v === null || v === undefined || Number.isNaN(v)) return "-";
+      return Number(v).toFixed(digits);
+    }
+
+    function avg(values) {
+      const clean = values.filter(v => typeof v === "number" && Number.isFinite(v));
+      if (!clean.length) return null;
+      return clean.reduce((a,b) => a + b, 0) / clean.length;
+    }
+
+    function rollingAvg(list, index, days) {
+      return avg(list.slice(Math.max(0, index - days + 1), index + 1).map(r => r.morning));
+    }
+
+    function getNoiseScore(r) {
+      if (!r) return 0;
+      let s = 0;
+      if (r.period === "pms") s += 35;
+      if (r.period === "day1" || r.period === "day2") s += 30;
+      if (r.period === "late" || r.period === "ovulation") s += 20;
+      if (r.bowel === "no") s += 22;
+      if (r.bowel === "small") s += 12;
+      if (r.eating === "outside") s += 26;
+      if (r.eating === "salty") s += 26;
+      if (r.eating === "carb") s += 22;
+      if (r.condition === "bloating") s += 18;
+      if (r.condition === "headache" || r.condition === "tired") s += 8;
+      if (r.evening && r.morning && r.evening - r.morning >= 0.7) s += 20;
+      return Math.min(100, s);
+    }
+
+    function reasons(r) {
+      const out = [];
+      if (!r) return out;
+      if (r.period !== "none") out.push("호르몬/수분저류");
+      if (r.bowel === "no" || r.bowel === "small") out.push("장 내용물");
+      if (["outside","salty","carb"].includes(r.eating)) out.push("외식·염분·탄수");
+      if (r.condition === "bloating") out.push("붓기");
+      if (r.evening && r.morning && r.evening - r.morning >= 0.7) out.push("저녁 체중 급상승");
+      return out;
+    }
+
+    function interpretation(r, avg7, avg14, prev7) {
+      if (!r || !r.morning) return "오늘 데이터를 입력하면 해석이 표시됩니다.";
+      const noise = getNoiseScore(r);
+      const trend = avg7 !== null && avg14 !== null ? avg7 - avg14 : null;
+      const ch7 = avg7 !== null && prev7 !== null ? avg7 - prev7 : null;
+      const cause = reasons(r);
+      if (noise >= 60) {
+        return "노이즈 가능성이 높습니다. 원인 후보: " + (cause.length ? cause.join(" / ") : "수분 변동") + ". 오늘 숫자를 지방 증가로 단정하지 않는 것이 합리적입니다.";
+      }
+      if (ch7 !== null && ch7 > 0.25) {
+        return "최근 7일 평균이 직전 7일보다 올라왔습니다. 하루 노이즈도 있지만, 식사량·활동량·수면·스트레스 패턴을 3일 단위로 점검할 필요가 있습니다.";
+      }
+      if (trend !== null && trend < -0.15) {
+        return "감량 추세가 살아 있습니다. 오늘 체중보다 7일 평균의 방향을 우선해서 보세요.";
+      }
+      if (avg7 !== null && r.morning - avg7 > 0.3) {
+        return "오늘은 7일 평균보다 높습니다. 다만 단일 체중은 판단력이 낮습니다. 내일 아침과 7일 평균 변화를 함께 확인하세요.";
+      }
+      return "현재는 유지 또는 정체 구간입니다. 판단 기준은 오늘 숫자가 아니라 7일 평균과 14일 평균의 차이입니다.";
+    }
+
+    function statusLabel(change7, noise) {
+      if (noise >= 60) return { text: "노이즈↑", cls: "warn" };
+      if (change7 !== null && change7 > 0.25) return { text: "상승", cls: "danger" };
+      if (change7 !== null && change7 < -0.15) return { text: "하락", cls: "good" };
+      return { text: "유지", cls: "" };
+    }
+
+    function metrics() {
+      const latest = records[records.length - 1] || null;
+      const last7 = records.slice(-7);
+      const prev7List = records.slice(-14, -7);
+      const last14 = records.slice(-14);
+      const avg7 = avg(last7.map(r => r.morning));
+      const prev7 = avg(prev7List.map(r => r.morning));
+      const avg14 = avg(last14.map(r => r.morning));
+      const change7 = avg7 !== null && prev7 !== null ? avg7 - prev7 : null;
+      return { latest, avg7, prev7, avg14, change7 };
+    }
+
+    function renderToday() {
+      const { latest, avg7, prev7, avg14, change7 } = metrics();
+      const noise = getNoiseScore(latest);
+      const status = statusLabel(change7, noise);
+
+      $("latestWeight").textContent = latest?.morning ? fmt(latest.morning) : "-";
+      $("avg7").textContent = avg7 !== null ? fmt(avg7) : "-";
+      $("change7").textContent = change7 !== null ? (change7 > 0 ? "+" : "") + fmt(change7) : "-";
+      $("toTarget").textContent = latest?.morning ? fmt(latest.morning - TARGET) : "-";
+      $("noiseBar").style.width = noise + "%";
+      $("noiseScore").textContent = noise + " / 100";
+      $("interpretation").textContent = interpretation(latest, avg7, avg14, prev7);
+      $("statusText").textContent = status.text;
+      $("statusText").className = "big " + status.cls;
+
+      renderStrategy(avg7, prev7, avg14, change7);
+    }
+
+    function renderStrategy(avg7, prev7, avg14, change7) {
+      let txt = "데이터가 더 쌓이면 전략 판단이 표시됩니다.";
+      if (avg7 !== null && prev7 !== null) {
+        if (change7 > 0.25) {
+          txt = "최근 7일 평균이 직전 7일 대비 " + fmt(change7) + "kg 상승했습니다. 단순 하루 노이즈는 아니므로, 3일간 외식·염분·탄수·대변·수면을 같이 관리하는 쪽이 현실적입니다.";
+        } else if (change7 < -0.15) {
+          txt = "최근 7일 평균이 직전 7일 대비 " + fmt(Math.abs(change7)) + "kg 하락했습니다. 감량 흐름이 있으므로 과도하게 식단을 줄이기보다 현재 루틴을 유지하는 편이 좋습니다.";
+        } else {
+          txt = "최근 7일 평균은 큰 변화 없이 유지권입니다. 지금은 극단적 조정보다 기록 품질을 높여 원인 변수를 분리하는 것이 더 중요합니다.";
+        }
+      }
+      $("strategyText").textContent = txt;
+    }
+
+    function renderRecords() {
+      const box = $("recordsList");
+      if (!records.length) {
+        box.innerHTML = "<p class='muted'>아직 기록이 없습니다.</p>";
+        return;
+      }
+      box.innerHTML = records.slice().reverse().map(r => `
+        <div class="record">
+          <div class="row">
+            <div>
+              <div class="record-date">${escapeHtml(r.date)}</div>
+              <div class="muted">아침 ${fmt(r.morning)}kg · 저녁 ${fmt(r.evening)}kg</div>
+            </div>
+            <div class="pill">Noise ${getNoiseScore(r)}</div>
+          </div>
+          <div class="chips">
+            <span class="chip">대변 ${escapeHtml(r.bowel || "-")}</span>
+            <span class="chip">생리 ${escapeHtml(r.period || "-")}</span>
+            <span class="chip">식사 ${escapeHtml(r.eating || "-")}</span>
+            <span class="chip">컨디션 ${escapeHtml(r.condition || "-")}</span>
+          </div>
+          ${r.note ? `<div class="small" style="margin-top:8px;">${escapeHtml(r.note)}</div>` : ""}
+        </div>
+      `).join("");
+    }
+
+    function drawChart() {
+      const canvas = $("chart");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width, h = canvas.height;
+      ctx.clearRect(0,0,w,h);
+
+      ctx.fillStyle = "#fffdf8";
+      ctx.fillRect(0,0,w,h);
+
+      const data = records.filter(r => typeof r.morning === "number");
+      if (data.length < 2) {
+        ctx.fillStyle = "#77736b";
+        ctx.font = "14px -apple-system";
+        ctx.fillText("기록이 2개 이상 필요합니다.", 22, 130);
+        return;
+      }
+
+      const pad = { l: 42, r: 18, t: 18, b: 32 };
+      const values = data.map(r => r.morning).concat([TARGET]);
+      const min = Math.floor((Math.min(...values) - 0.3) * 10) / 10;
+      const max = Math.ceil((Math.max(...values) + 0.3) * 10) / 10;
+      const x = i => pad.l + (i / (data.length - 1)) * (w - pad.l - pad.r);
+      const y = v => pad.t + ((max - v) / (max - min)) * (h - pad.t - pad.b);
+
+      ctx.strokeStyle = "#ded8cc";
+      ctx.lineWidth = 1;
+      ctx.font = "11px -apple-system";
+      ctx.fillStyle = "#77736b";
+
+      for (let i = 0; i <= 4; i++) {
+        const val = min + (i / 4) * (max - min);
+        const yy = y(val);
+        ctx.beginPath(); ctx.moveTo(pad.l, yy); ctx.lineTo(w-pad.r, yy); ctx.stroke();
+        ctx.fillText(val.toFixed(1), 6, yy + 4);
+      }
+
+      // target dashed
+      ctx.save();
+      ctx.setLineDash([5,5]);
+      ctx.strokeStyle = "#9c8f7a";
+      ctx.beginPath(); ctx.moveTo(pad.l, y(TARGET)); ctx.lineTo(w-pad.r, y(TARGET)); ctx.stroke();
+      ctx.restore();
+      ctx.fillText("target", w - 58, y(TARGET) - 5);
+
+      // morning line
+      ctx.strokeStyle = "#2f2a24";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      data.forEach((r, i) => {
+        if (i === 0) ctx.moveTo(x(i), y(r.morning));
+        else ctx.lineTo(x(i), y(r.morning));
+      });
+      ctx.stroke();
+
+      // 7d avg line
+      const avgPoints = data.map((r, i) => rollingAvg(data, i, 7));
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 4;
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath();
+      avgPoints.forEach((v, i) => {
+        if (v === null) return;
+        if (i === 0) ctx.moveTo(x(i), y(v));
+        else ctx.lineTo(x(i), y(v));
+      });
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // dots
+      ctx.fillStyle = "#2f2a24";
+      data.forEach((r, i) => {
+        ctx.beginPath(); ctx.arc(x(i), y(r.morning), 2.6, 0, Math.PI*2); ctx.fill();
+      });
+
+      ctx.fillStyle = "#77736b";
+      ctx.fillText(data[0].date.slice(5), pad.l, h - 10);
+      ctx.fillText(data[data.length - 1].date.slice(5), w - 60, h - 10);
+    }
+
+    function renderAll() {
+      records = sortRecords(records);
+      saveRecords(records);
+      renderToday();
+      renderRecords();
+      drawChart();
+    }
+
+    function saveInput() {
+      const date = $("date").value || todayISO();
+      const record = {
+        date,
+        morning: num($("morning").value),
+        evening: num($("evening").value),
+        bowel: $("bowel").value,
+        period: $("period").value,
+        eating: $("eating").value,
+        calories: num($("calories").value),
+        steps: num($("steps").value),
+        condition: $("condition").value,
+        note: $("note").value.trim()
+      };
+      if (!record.morning && !record.evening) {
+        alert("아침 또는 저녁 체중 중 하나는 입력해야 합니다.");
+        return;
+      }
+      records = records.filter(r => r.date !== date).concat(record);
+      clearForm();
+      renderAll();
+      showView("today");
+    }
+
+    function clearForm() {
+      $("date").value = todayISO();
+      $("morning").value = "";
+      $("evening").value = "";
+      $("bowel").value = "yes";
+      $("period").value = "none";
+      $("eating").value = "normal";
+      $("calories").value = "";
+      $("steps").value = "";
+      $("condition").value = "normal";
+      $("note").value = "";
+    }
+
+    function showView(id) {
+      document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === id));
+      document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.view === id));
+      if (id === "trend") setTimeout(drawChart, 50);
+    }
+
+    function parseCSV(text) {
+      const rows = [];
+      let row = [], field = "", inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i], n = text[i+1];
+        if (c === '"' && inQuotes && n === '"') { field += '"'; i++; }
+        else if (c === '"') inQuotes = !inQuotes;
+        else if (c === "," && !inQuotes) { row.push(field); field = ""; }
+        else if ((c === "\n" || c === "\r") && !inQuotes) {
+          if (field || row.length) { row.push(field); rows.push(row); row = []; field = ""; }
+          if (c === "\r" && n === "\n") i++;
+        } else field += c;
+      }
+      if (field || row.length) { row.push(field); rows.push(row); }
+      return rows;
+    }
+
+    function normalizeHeader(h) {
+      return String(h || "").trim().toLowerCase().replace(/\s+/g, "");
+    }
+
+    function findIndex(headers, names) {
+      const normalized = headers.map(normalizeHeader);
+      for (const name of names) {
+        const idx = normalized.findIndex(h => h.includes(normalizeHeader(name)));
+        if (idx >= 0) return idx;
+      }
+      return -1;
+    }
+
+    function mapCSV(rows) {
+      if (!rows.length) return [];
+      const headers = rows[0];
+      const idx = {
+        date: findIndex(headers, ["date", "날짜", "日付"]),
+        morning: findIndex(headers, ["morning", "아침", "공복", "朝", "morningweight"]),
+        evening: findIndex(headers, ["evening", "저녁", "밤", "夜", "eveningweight"]),
+        bowel: findIndex(headers, ["bowel", "대변", "便"]),
+        period: findIndex(headers, ["period", "생리", "menstrual"]),
+        eating: findIndex(headers, ["eating", "식사", "meal", "외식"]),
+        calories: findIndex(headers, ["calories", "kcal", "칼로리"]),
+        steps: findIndex(headers, ["steps", "걸음"]),
+        condition: findIndex(headers, ["condition", "컨디션", "상태"]),
+        note: findIndex(headers, ["note", "memo", "메모", "notes"])
+      };
+
+      return rows.slice(1).map(cols => {
+        const dateRaw = idx.date >= 0 ? cols[idx.date] : "";
+        const date = normalizeDate(dateRaw);
+        if (!date) return null;
+        return {
+          date,
+          morning: idx.morning >= 0 ? num(cols[idx.morning]) : null,
+          evening: idx.evening >= 0 ? num(cols[idx.evening]) : null,
+          bowel: normalizeBowel(idx.bowel >= 0 ? cols[idx.bowel] : ""),
+          period: normalizePeriod(idx.period >= 0 ? cols[idx.period] : ""),
+          eating: normalizeEating(idx.eating >= 0 ? cols[idx.eating] : ""),
+          calories: idx.calories >= 0 ? num(cols[idx.calories]) : null,
+          steps: idx.steps >= 0 ? num(cols[idx.steps]) : null,
+          condition: normalizeCondition(idx.condition >= 0 ? cols[idx.condition] : ""),
+          note: idx.note >= 0 ? String(cols[idx.note] || "").trim() : ""
+        };
+      }).filter(r => r && (r.morning || r.evening));
+    }
+
+    function normalizeDate(v) {
+      const s = String(v || "").trim();
+      if (!s) return "";
+      if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) {
+        const [y,m,d] = s.split("-");
+        return `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+      }
+      if (/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(s)) {
+        const [y,m,d] = s.split("/");
+        return `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+      }
+      const dt = new Date(s);
+      if (!Number.isNaN(dt.getTime())) return dt.toISOString().slice(0,10);
+      return "";
+    }
+
+    function normalizeBowel(v) {
+      const s = String(v || "").toLowerCase();
+      if (s.includes("no") || s.includes("없") || s.includes("なし")) return "no";
+      if (s.includes("small") || s.includes("조금") || s.includes("少")) return "small";
+      if (s.includes("yes") || s.includes("있") || s.includes("あり")) return "yes";
+      return "unknown";
+    }
+
+    function normalizePeriod(v) {
+      const s = String(v || "").toLowerCase();
+      if (s.includes("pms") || s.includes("전")) return "pms";
+      if (s.includes("1")) return "day1";
+      if (s.includes("2")) return "day2";
+      if (s.includes("late") || s.includes("후반")) return "late";
+      if (s.includes("ovulation") || s.includes("배란")) return "ovulation";
+      return "none";
+    }
+
+    function normalizeEating(v) {
+      const s = String(v || "").toLowerCase();
+      if (s.includes("outside") || s.includes("외식")) return "outside";
+      if (s.includes("salty") || s.includes("염분") || s.includes("짠")) return "salty";
+      if (s.includes("carb") || s.includes("탄수")) return "carb";
+      if (s.includes("home") || s.includes("집")) return "home";
+      if (s.includes("low") || s.includes("적게")) return "low";
+      return "normal";
+    }
+
+    function normalizeCondition(v) {
+      const s = String(v || "").toLowerCase();
+      if (s.includes("bloat") || s.includes("붓")) return "bloating";
+      if (s.includes("head") || s.includes("두통")) return "headache";
+      if (s.includes("tired") || s.includes("피곤")) return "tired";
+      if (s.includes("hungry") || s.includes("식욕")) return "hungry";
+      if (s.includes("stable") || s.includes("안정")) return "stable";
+      return "normal";
+    }
+
+    function importCSV(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const rows = parseCSV(String(reader.result || ""));
+          const imported = mapCSV(rows);
+          if (!imported.length) {
+            alert("가져올 수 있는 기록을 찾지 못했습니다. CSV 헤더에 Date/Morning/Evening 등이 있는지 확인하세요.");
+            return;
+          }
+          const byDate = new Map(records.map(r => [r.date, r]));
+          imported.forEach(r => byDate.set(r.date, { ...(byDate.get(r.date) || {}), ...r }));
+          records = sortRecords([...byDate.values()]);
+          renderAll();
+          alert(imported.length + "개 기록을 가져왔습니다.");
+        } catch (e) {
+          alert("CSV 가져오기 중 오류가 발생했습니다.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function exportCSV() {
+      const headers = ["date","morning","evening","bowel","period","eating","calories","steps","condition","note"];
+      const lines = [headers.join(",")].concat(records.map(r => headers.map(h => csvEscape(r[h] ?? "")).join(",")));
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "scale-decoder-backup.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function csvEscape(v) {
+      const s = String(v);
+      return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? "").replace(/[&<>"']/g, m => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;" }[m]));
+    }
+
+    document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.view)));
+    $("saveBtn").addEventListener("click", saveInput);
+    $("exportBtn").addEventListener("click", exportCSV);
+    $("resetBtn").addEventListener("click", () => {
+      if (confirm("현재 기록을 데모 데이터로 바꿀까요?")) {
+        records = demoRecords;
+        renderAll();
+      }
+    });
+    $("csvFile").addEventListener("change", e => {
+      const file = e.target.files && e.target.files[0];
+      if (file) importCSV(file);
+      e.target.value = "";
+    });
+
+    clearForm();
+    renderAll();
+  </script>
+</body>
+</html>
